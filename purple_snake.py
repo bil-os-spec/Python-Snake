@@ -29,7 +29,22 @@ def message(msg, color):
     text = font.render(msg, True, color)
     window.blit(text, [width / 6, height / 3])
 
+def show_score(score):
+    score_text = font.render(f"Score: {score}", True, purple)
+    window.blit(score_text, [10, 10])
+
+def welcome_screen():
+    window.fill(black)
+    message("Welcome to Snake Game", purple)
+    pygame.display.update()
+    time.sleep(2)
+    window.fill(black)
+    message("GitHub.com/developer2025", purple)
+    pygame.display.update()
+    time.sleep(2)
+
 def game():
+    welcome_screen()
     game_active = True
     game_over = False
 
@@ -44,6 +59,8 @@ def game():
 
     food_x = round(random.randrange(0, width - block_size) / 20.0) * 20.0
     food_y = round(random.randrange(0, height - block_size) / 20.0) * 20.0
+
+    score = 0
 
     while game_active:
         while game_over:
@@ -95,12 +112,14 @@ def game():
                 game_over = True
 
         draw_snake(block_size, snake_list)
+        show_score(score)
         pygame.display.update()
 
         if x == food_x and y == food_y:
             food_x = round(random.randrange(0, width - block_size) / 20.0) * 20.0
             food_y = round(random.randrange(0, height - block_size) / 20.0) * 20.0
             snake_length += 1
+            score += 1
 
         clock.tick(speed)
 
