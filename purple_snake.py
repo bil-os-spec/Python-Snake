@@ -40,8 +40,8 @@ def game():
     game_active = True
     game_over = False
     
-    x = WIDTH // 2
-    y = HEIGHT // 2
+    x = random.choice([0, WIDTH // 4, WIDTH // 2, WIDTH - BLOCK_SIZE])
+    y = random.choice([0, HEIGHT // 4, HEIGHT // 2, HEIGHT - BLOCK_SIZE])
     x_change = 0
     y_change = 0
     snake_list = []
@@ -85,7 +85,7 @@ def game():
                 elif event.key == pygame.K_DOWN and y_change == 0:
                     y_change = BLOCK_SIZE
                     x_change = 0
-                elif event.key == pygame.K_t:  # Teletransportación
+                elif event.key == pygame.K_t:
                     x = random.randrange(0, WIDTH - BLOCK_SIZE, BLOCK_SIZE)
                     y = random.randrange(0, HEIGHT - BLOCK_SIZE, BLOCK_SIZE)
 
