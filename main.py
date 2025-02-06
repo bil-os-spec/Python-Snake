@@ -122,13 +122,18 @@ def game():
                     x_change = 0
                 elif event.key == pygame.K_p:
                     paused = not paused
+                elif event.key == pygame.K_ESCAPE:
+                    if paused:
+                        game_active = False
+                    else:
+                        paused = True
                 elif event.key == pygame.K_t:
                     x = random.randrange(0, WIDTH - BLOCK_SIZE, BLOCK_SIZE)
                     y = random.randrange(0, HEIGHT - BLOCK_SIZE, BLOCK_SIZE)
 
         if paused:
             window.fill(BLACK)
-            message("Paused - Press P to Resume", WHITE, (WIDTH // 4, HEIGHT // 3))
+            message("Paused - Press P to Resume or ESC to Exit", WHITE, (WIDTH // 4, HEIGHT // 3))
             pygame.display.update()
             continue
 
