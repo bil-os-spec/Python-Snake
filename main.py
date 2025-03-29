@@ -129,7 +129,7 @@ GRID_HEIGHT = SCREEN_HEIGHT // BLOCK_SIZE
 
 # Create screen
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.DOUBLEBUF | pygame.HWSURFACE)
-pygame.display.set_caption("Ultimate Snake Game 2024")
+pygame.display.set_caption("Ultimate Snake Game 2024") # Snake on 2024
 clock = pygame.time.Clock()
 
 # Load fonts
@@ -247,12 +247,12 @@ class SoundSystem:
 # Initialize sound system
 sound_system = SoundSystem()
 try:
-    sound_system.load_sound("eat", "assets/sounds/eat.wav")
-    sound_system.load_sound("crash", "assets/sounds/crash.wav")
-    sound_system.load_sound("powerup", "assets/sounds/powerup.wav")
-    sound_system.load_sound("click", "assets/sounds/click.wav")
-    sound_system.load_music("background", "assets/music/background.mp3")
-    sound_system.load_music("menu", "assets/music/menu.mp3")
+    sound_system.load_sound("eat", "assets/sounds/eat.wav") # working on
+    sound_system.load_sound("crash", "assets/sounds/crash.wav") # working on
+    sound_system.load_sound("powerup", "assets/sounds/powerup.wav") # working on
+    sound_system.load_sound("click", "assets/sounds/click.wav") # working on
+    sound_system.load_music("background", "assets/music/background.mp3") # working on
+    sound_system.load_music("menu", "assets/music/menu.mp3") # working on
 except:
     print("Sound files not found, continuing without sound")
 
