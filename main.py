@@ -23,6 +23,13 @@ class GameState(Enum):
     SETTINGS = 4
     SHOP = 5
     STATS = 6
+    MODE_SELECT = 7
+
+class GameMode(Enum):
+    CLASSIC = 0
+    TIME_ATTACK = 1
+    SURVIVAL = 2
+    MULTIPLAYER = 3
 
 class Direction(Enum):
     UP = 0
@@ -30,7 +37,7 @@ class Direction(Enum):
     LEFT = 2
     RIGHT = 3
 
-# Color system with 100+ colors
+# Color system with 150+ colors
 COLORS = {
     # Basic colors
     "BLACK": (0, 0, 0),
@@ -114,7 +121,11 @@ COLORS = {
     "DARK_SLATE_BLUE": (72, 61, 139),
     "SLATE_BLUE": (106, 90, 205),
     "MEDIUM_SLATE_BLUE": (123, 104, 238),
-    # Add more colors as needed...
+    "NEON_GREEN": (57, 255, 20),
+    "NEON_BLUE": (20, 57, 255),
+    "NEON_PINK": (255, 20, 147),
+    "NEON_YELLOW": (255, 234, 0),
+    "NEON_PURPLE": (180, 0, 255),
 }
 
 # Game settings
@@ -129,7 +140,7 @@ GRID_HEIGHT = SCREEN_HEIGHT // BLOCK_SIZE
 
 # Create screen
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.DOUBLEBUF | pygame.HWSURFACE)
-pygame.display.set_caption("Ultimate Snake Game 2024") # Snake on 2024
+pygame.display.set_caption("Ultimate Snake Game 2024")
 clock = pygame.time.Clock()
 
 # Load fonts
@@ -247,19 +258,20 @@ class SoundSystem:
 # Initialize sound system
 sound_system = SoundSystem()
 try:
-    sound_system.load_sound("eat", "assets/sounds/eat.wav") # working on
-    sound_system.load_sound("crash", "assets/sounds/crash.wav") # working on
-    sound_system.load_sound("powerup", "assets/sounds/powerup.wav") # working on
-    sound_system.load_sound("click", "assets/sounds/click.wav") # working on
-    sound_system.load_music("background", "assets/music/background.mp3") # working on
-    sound_system.load_music("menu", "assets/music/menu.mp3") # working on
+    sound_system.load_sound("eat", "assets/sounds/eat.wav")
+    sound_system.load_sound("crash", "assets/sounds/crash.wav")
+    sound_system.load_sound("powerup", "assets/sounds/powerup.wav")
+    sound_system.load_sound("click", "assets/sounds/click.wav")
+    sound_system.load_music("background", "assets/music/background.mp3")
+    sound_system.load_music("menu", "assets/music/menu.mp3")
 except:
     print("Sound files not found, continuing without sound")
 
 # Snake class with enhanced features
 class Snake:
-    def __init__(self):
+    def __init__(self, player_num=1):
         self.reset()
+        self.player_num = player_num
         self.skin_index = 0
         self.skins = [
             {"body": COLORS["PURPLE"], "head": COLORS["DEEP_PURPLE"]},
@@ -270,6 +282,11 @@ class Snake:
             {"body": COLORS["PINK"], "head": COLORS["HOT_PINK"]},
             {"body": COLORS["BLUE_VIOLET"], "head": COLORS["INDIGO"]},
             {"body": COLORS["TEAL"], "head": COLORS["TURQUOISE"]},
+            {"body": COLORS["NEON_GREEN"], "head": COLORS["GREEN"]},
+            {"body": COLORS["NEON_BLUE"], "head": COLORS["BLUE"]},
+            {"body": COLORS["NEON_PINK"], "head": COLORS["HOT_PINK"]},
+            {"body": COLORS["NEON_YELLOW"], "head": COLORS["YELLOW"]},
+            {"body": COLORS["NEON_PURPLE"], "head": COLORS["PURPLE"]},
         ]
         self.eye_color = COLORS["WHITE"]
         self.pupil_color = COLORS["BLACK"]
@@ -513,7 +530,8 @@ class Snake:
 
 # Food system with multiple types
 class Food:
-    def __init__(self):
+    def __init__(self, count=1):
+        self.food_items = []
         self.types = {
             "normal": {"color": COLORS["GREEN"], "value": 1, "rarity": 60},
             "speed": {"color": COLORS["CYAN"], "value": 2, "rarity": 15, "effect": "speed_boost"},
@@ -524,144 +542,165 @@ class Food:
             "poison": {"color": COLORS["DARK_GREEN"], "value": -2, "rarity": 5, "effect": "shrink"},
             "invincible": {"color": COLORS["WHITE"], "value": 0, "rarity": 5, "effect": "invincible"},
             "shield": {"color": COLORS["SILVER"], "value": 0, "rarity": 5, "effect": "shield"},
-            "glow": {"color": COLORS["MAGENTA"], "value": 2, "rarity": 5, "effect": "glow"}
+            "glow": {"color": COLORS["MAGENTA"], "value": 2, "rarity": 5, "effect": "glow"},
+            "multiplayer": {"color": COLORS["NEON_GREEN"], "value": 2, "rarity": 5, "effect": "multi_score"}
         }
-        self.spawn_timer = 0
-        self.current_color_index = 0
         self.rainbow_colors = [COLORS["RED"], COLORS["ORANGE"], COLORS["YELLOW"], 
                               COLORS["GREEN"], COLORS["BLUE"], COLORS["INDIGO"], COLORS["VIOLET"]]
-        self.respawn()
-        
-    def respawn(self):
+        for _ in range(count):
+            self.food_items.append(self.create_food())
+            
+    def create_food(self):
         total_rarity = sum(food["rarity"] for food in self.types.values())
         r = random.uniform(0, total_rarity)
         upto = 0
         
         for name, props in self.types.items():
             if upto + props["rarity"] >= r:
-                self.type = name
-                self.color = props["color"]
-                self.value = props["value"]
-                self.effect = props.get("effect")
-                break
+                food = {
+                    "type": name,
+                    "color": props["color"],
+                    "value": props["value"],
+                    "effect": props.get("effect"),
+                    "pos": [
+                        random.randrange(BLOCK_SIZE, SCREEN_WIDTH - BLOCK_SIZE, BLOCK_SIZE),
+                        random.randrange(BLOCK_SIZE, SCREEN_HEIGHT - BLOCK_SIZE, BLOCK_SIZE)
+                    ],
+                    "spawn_time": pygame.time.get_ticks(),
+                    "spawn_animation": True,
+                    "animation_timer": 0
+                }
+                return food
             upto += props["rarity"]
-            
-        self.pos = [
-            random.randrange(BLOCK_SIZE, SCREEN_WIDTH - BLOCK_SIZE, BLOCK_SIZE),
-            random.randrange(BLOCK_SIZE, SCREEN_HEIGHT - BLOCK_SIZE, BLOCK_SIZE)
-        ]
-        self.spawn_time = pygame.time.get_ticks()
-        self.spawn_animation = True
-        self.animation_timer = 0
+        return None
         
+    def respawn(self, index=0):
+        if index < len(self.food_items):
+            self.food_items[index] = self.create_food()
+            
     def update(self):
-        # Rainbow food color animation
-        if self.type == "rainbow":
-            self.current_color_index = (self.current_color_index + 1) % len(self.rainbow_colors)
-            self.color = self.rainbow_colors[self.current_color_index]
-            
-        # Spawn animation
-        if self.spawn_animation:
-            self.animation_timer += 1
-            if self.animation_timer > 30:
-                self.spawn_animation = False
+        for food in self.food_items:
+            # Rainbow food color animation
+            if food["type"] == "rainbow":
+                food["current_color_index"] = (food.get("current_color_index", 0) + 1) % len(self.rainbow_colors)
+                food["color"] = self.rainbow_colors[food["current_color_index"]]
                 
-        # Food expiration (only some types expire)
-        if self.type in ["bonus", "golden", "rainbow"]:
-            if pygame.time.get_ticks() - self.spawn_time > 10000:  # 10 seconds
-                self.respawn()
-                
+            # Spawn animation
+            if food["spawn_animation"]:
+                food["animation_timer"] += 1
+                if food["animation_timer"] > 30:
+                    food["spawn_animation"] = False
+                    
+            # Food expiration (only some types expire)
+            if food["type"] in ["bonus", "golden", "rainbow", "multiplayer"]:
+                if pygame.time.get_ticks() - food["spawn_time"] > 10000:  # 10 seconds
+                    self.respawn(self.food_items.index(food))
+                    
     def draw(self, surface):
-        size = BLOCK_SIZE
-        
-        if self.spawn_animation:
-            # Growing animation when food spawns
-            size = int(BLOCK_SIZE * (self.animation_timer / 30))
+        for food in self.food_items:
+            size = BLOCK_SIZE
             
-        x, y = self.pos[0] + (BLOCK_SIZE - size) // 2, self.pos[1] + (BLOCK_SIZE - size) // 2
-        
-        # Special drawing for different food types
-        if self.type == "golden":
-            # Golden food has a shine effect
-            pygame.draw.rect(surface, self.color, (x, y, size, size), border_radius=size//2)
-            
-            # Draw shine lines
-            shine_color = COLORS["YELLOW"]
-            center_x, center_y = x + size//2, y + size//2
-            pygame.draw.line(
-                surface, shine_color, 
-                (center_x - size//4, center_y - size//4),
-                (center_x + size//4, center_y + size//4), 
-                2
-            )
-            pygame.draw.line(
-                surface, shine_color, 
-                (center_x + size//4, center_y - size//4),
-                (center_x - size//4, center_y + size//4), 
-                2
-            )
-        elif self.type == "rainbow":
-            # Rainbow food has a swirling effect
-            pygame.draw.rect(surface, self.color, (x, y, size, size), border_radius=size//2)
-            
-            # Draw rainbow rings
-            for i in range(3):
-                ring_color = self.rainbow_colors[(self.current_color_index + i*2) % len(self.rainbow_colors)]
-                ring_size = size - i*4 - 2
-                pygame.draw.rect(
-                    surface, ring_color, 
-                    (x + i*2 + 1, y + i*2 + 1, ring_size, ring_size), 
-                    border_radius=ring_size//2, 
-                    width=2
-                )
-        else:
-            # Regular food drawing
-            pygame.draw.rect(surface, self.color, (x, y, size, size), border_radius=size//2)
-            
-            # Add some details for special foods
-            if self.type in ["speed", "slow", "invincible", "shield", "glow"]:
-                symbol_size = size // 2
-                symbol_x, symbol_y = x + (size - symbol_size) // 2, y + (size - symbol_size) // 2
+            if food["spawn_animation"]:
+                # Growing animation when food spawns
+                size = int(BLOCK_SIZE * (food["animation_timer"] / 30))
                 
-                if self.type == "speed":
-                    pygame.draw.polygon(
-                        surface, COLORS["WHITE"], 
-                        [(symbol_x, symbol_y), 
-                         (symbol_x + symbol_size, symbol_y + symbol_size//2),
-                         (symbol_x, symbol_y + symbol_size)]
-                    )
-                elif self.type == "slow":
+            x, y = food["pos"][0] + (BLOCK_SIZE - size) // 2, food["pos"][1] + (BLOCK_SIZE - size) // 2
+            
+            # Special drawing for different food types
+            if food["type"] == "golden":
+                # Golden food has a shine effect
+                pygame.draw.rect(surface, food["color"], (x, y, size, size), border_radius=size//2)
+                
+                # Draw shine lines
+                shine_color = COLORS["YELLOW"]
+                center_x, center_y = x + size//2, y + size//2
+                pygame.draw.line(
+                    surface, shine_color, 
+                    (center_x - size//4, center_y - size//4),
+                    (center_x + size//4, center_y + size//4), 
+                    2
+                )
+                pygame.draw.line(
+                    surface, shine_color, 
+                    (center_x + size//4, center_y - size//4),
+                    (center_x - size//4, center_y + size//4), 
+                    2
+                )
+            elif food["type"] == "rainbow":
+                # Rainbow food has a swirling effect
+                pygame.draw.rect(surface, food["color"], (x, y, size, size), border_radius=size//2)
+                
+                # Draw rainbow rings
+                for i in range(3):
+                    ring_color = self.rainbow_colors[(food.get("current_color_index", 0) + i*2) % len(self.rainbow_colors)]
+                    ring_size = size - i*4 - 2
                     pygame.draw.rect(
-                        surface, COLORS["WHITE"], 
-                        (symbol_x, symbol_y, symbol_size, symbol_size), 
-                        border_radius=2
+                        surface, ring_color, 
+                        (x + i*2 + 1, y + i*2 + 1, ring_size, ring_size), 
+                        border_radius=ring_size//2, 
+                        width=2
                     )
-                elif self.type == "invincible":
-                    pygame.draw.circle(
-                        surface, COLORS["WHITE"], 
-                        (symbol_x + symbol_size//2, symbol_y + symbol_size//2), 
-                        symbol_size//2
-                    )
-                elif self.type == "shield":
-                    pygame.draw.polygon(
-                        surface, COLORS["WHITE"], 
-                        [(symbol_x + symbol_size//2, symbol_y),
-                         (symbol_x, symbol_y + symbol_size),
-                         (symbol_x + symbol_size, symbol_y + symbol_size)]
-                    )
-                elif self.type == "glow":
-                    pygame.draw.line(
-                        surface, COLORS["WHITE"], 
-                        (symbol_x, symbol_y + symbol_size//2),
-                        (symbol_x + symbol_size, symbol_y + symbol_size//2), 
-                        2
-                    )
-                    pygame.draw.line(
-                        surface, COLORS["WHITE"], 
-                        (symbol_x + symbol_size//2, symbol_y),
-                        (symbol_x + symbol_size//2, symbol_y + symbol_size), 
-                        2
-                    )
+            else:
+                # Regular food drawing
+                pygame.draw.rect(surface, food["color"], (x, y, size, size), border_radius=size//2)
+                
+                # Add some details for special foods
+                if food["type"] in ["speed", "slow", "invincible", "shield", "glow", "multiplayer"]:
+                    symbol_size = size // 2
+                    symbol_x, symbol_y = x + (size - symbol_size) // 2, y + (size - symbol_size) // 2
+                    
+                    if food["type"] == "speed":
+                        pygame.draw.polygon(
+                            surface, COLORS["WHITE"], 
+                            [(symbol_x, symbol_y), 
+                             (symbol_x + symbol_size, symbol_y + symbol_size//2),
+                             (symbol_x, symbol_y + symbol_size)]
+                        )
+                    elif food["type"] == "slow":
+                        pygame.draw.rect(
+                            surface, COLORS["WHITE"], 
+                            (symbol_x, symbol_y, symbol_size, symbol_size), 
+                            border_radius=2
+                        )
+                    elif food["type"] == "invincible":
+                        pygame.draw.circle(
+                            surface, COLORS["WHITE"], 
+                            (symbol_x + symbol_size//2, symbol_y + symbol_size//2), 
+                            symbol_size//2
+                        )
+                    elif food["type"] == "shield":
+                        pygame.draw.polygon(
+                            surface, COLORS["WHITE"], 
+                            [(symbol_x + symbol_size//2, symbol_y),
+                             (symbol_x, symbol_y + symbol_size),
+                             (symbol_x + symbol_size, symbol_y + symbol_size)]
+                        )
+                    elif food["type"] == "glow":
+                        pygame.draw.line(
+                            surface, COLORS["WHITE"], 
+                            (symbol_x, symbol_y + symbol_size//2),
+                            (symbol_x + symbol_size, symbol_y + symbol_size//2), 
+                            2
+                        )
+                        pygame.draw.line(
+                            surface, COLORS["WHITE"], 
+                            (symbol_x + symbol_size//2, symbol_y),
+                            (symbol_x + symbol_size//2, symbol_y + symbol_size), 
+                            2
+                        )
+                    elif food["type"] == "multiplayer":
+                        pygame.draw.line(
+                            surface, COLORS["WHITE"], 
+                            (symbol_x, symbol_y),
+                            (symbol_x + symbol_size, symbol_y + symbol_size), 
+                            2
+                        )
+                        pygame.draw.line(
+                            surface, COLORS["WHITE"], 
+                            (symbol_x + symbol_size, symbol_y),
+                            (symbol_x, symbol_y + symbol_size), 
+                            2
+                        )
 
 # Obstacle system with different types
 class Obstacle:
@@ -725,7 +764,7 @@ class Obstacle:
                 if old_key in self.directions:
                     self.directions[new_key] = self.directions.pop(old_key)
                 if old_key in self.types:
-                    self.types[new_key] = self.types.pop(old_key)
+                    self.types[new_key] = self.
                     
     def draw(self, surface):
         for pos in self.positions:
